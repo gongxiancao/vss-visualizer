@@ -14,8 +14,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "vss-visualizer.helloWorld",
-        "title": "Hello World"
+        "command": "vss-visualizer.visualize",
+        "title": "Visualize VSS"
       }
     ],
     "configurationDefaults": {
