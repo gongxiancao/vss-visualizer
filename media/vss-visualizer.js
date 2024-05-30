@@ -12,6 +12,7 @@ window.addEventListener('message', event => {
 
     switch (message.command) {
         case 'update':
+            window.chan
             counter.textContent = message.data;
             break;
     }
