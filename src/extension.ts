@@ -54,7 +54,7 @@ export function activate(context: vscode.ExtensionContext) {
 
                 var message = {
                     command: 'update',
-                    data: editor.document.getText()
+                    data: compileVssDocumentToEchartsFormat(editor.document)
                 }
 
                 currentPanel.title = 'Visualize ' + path.basename(editor.document.fileName);
@@ -65,8 +65,13 @@ export function activate(context: vscode.ExtensionContext) {
             const editor = vscode.window.activeTextEditor;
 
             currentPanel.webview.onDidReceiveMessage(message => {
-                if (message.command === 'ready') {
-                    updateVisualizerWithActiveEditor(editor);
+                switch (message.command) {
+                    case 'ready':
+                        updateVisualizerWithActiveEditor(editor);
+                        break;
+                    case 'log':
+                        console.log(message.data);
+                        break;
                 }
             });
         }
@@ -84,16 +89,40 @@ function isVssDocument(document: vscode.TextDocument) {
     }
 }
 
+function compileVssDocumentToEchartsFormat(document: vscode.TextDocument) {
+    if (!document.fileName.endsWith('.json')) {
+        return null;
+    }
+    var json =  JSON.parse(document.getText());
+    return compileVssJsonChildrenNodeToEchartsFormat(json);
+}
+
+function compileVssJsonChildrenNodeToEchartsFormat(children: any): any[] {
+    if (!children) {
+        return [];
+    }
+    var result = [];
+    for (var key in children) {
+        var child = children[key];
+        if (child.children) {
+            result.push({name: key, children: compileVssJsonChildrenNodeToEchartsFormat(child.children)});
+        } else {
+            result.push({name: key});
+        }
+    }
+    return result;
+}
+
 function getWebviewContent(scriptUris: vscode.Uri[]) {
     return `<!DOCTYPE html>
-    <html lang="en">
+    <html lang="en" style="height: 100%">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>VSS Visualizer</title>
     </head>
-    <body>
-        <h1 id="lines-of-code-counter">Select a VSS file to visualize</h1>
+    <body style="height: 100%; margin: 0">
+        <div id="canvas" style="height: 100%"></div>
         ` + scriptUris.map(uri => `<script src="${uri}"></script>`).join('') + `
     </body>
     </html>`;
