@@ -31,7 +31,15 @@
         .attr("width", width)
         .attr("height", height);
 
-    var radius = 2;
+    var vssData = [];
+    var canvasPadding = 100;
+    var radius = 10;
+    var indent = 100 * radius;
+    var nodePaddingX = radius;
+    var nodePaddingY = radius;
+    var zoomed = false;
+    var zoomTransform = d3.zoomIdentity.translate(0, 0).scale(1);
+    let edgeColor = "#999";
 
     function drawVss(ctx, data) {
         //Clear canvas
@@ -40,45 +48,66 @@
         ctx.fill();
 
         //Draw
-        ctx.beginPath();
+        // ctx.beginPath();
 
-        ctx.arc(0, 0, radius, 0, 2 * Math.PI);
-        ctx.fillStyle = "#f00";
-        ctx.fill();
+        // ctx.arc(0, 0, 20, 0, 2 * Math.PI);
+        // ctx.fillStyle = "#f00";
+        // ctx.fill();
 
-        ctx.arc(100, 100, radius, 0, 2 * Math.PI);
-        ctx.fillStyle = "#0f0";
-        ctx.fill();
+        // ctx.beginPath();
+        // ctx.arc(200, 200, 20, 0, 2 * Math.PI);
+        // ctx.fillStyle = "#0f0";
+        // ctx.fill();
 
-        var y = 20;
+        var left = canvasPadding;
+        var top = canvasPadding;
         var layoutedNodes = [];
         for (var node of data) {
-            var layout = layoutVssNode(node, radius, y);
+            var layout = layoutVssNode(node, 0, left, top);
             layoutedNodes.push(layout);
-            y = layout.bottom;
+            top = layout.bottom;
+        }
+
+        if (!zoomed && layoutedNodes.length) {
+            let {x, y, left, right, top, bottom} = layoutedNodes[0];
+            canvas.call(zoom.scaleBy, Math.min(width / (right - left), height / (bottom - top)));
         }
 
         for (var layoutedNode of layoutedNodes) {
-            drawLayoutedVssNode(ctx, layoutedNode);
+            drawLayoutedVssNode(ctx, zoomTransform, 0, layoutedNode);
         }
     }
 
-    function layoutVssNode(node, x, y) {
-        var left = x;
-        var top = y;
-        var right = x + 4 * radius;
-        var bottom = y + 4 * radius;
+    var nodeColors = {
+        'branch': '#00f',
+        'attribute': '#0a0',
+        'sensor': '#fa0',
+        'actuator': '#f00',
+    };
+
+    function layoutVssNode(node, level, left, top) {
+        var right = left + 2 * radius + 2 * nodePaddingX;
+        var bottom = top + 2 * radius + 2 * nodePaddingY;
+        var x = left + nodePaddingX + radius;
+        var y = top + nodePaddingY + radius;
         var children = [];
+        var levelIndent = indent / Math.pow(2, level * 0.3);
+
+        var nextTop = top;
         if (node.children) {
             for (var child of node.children) {
-                var layout = layoutVssNode(child, x + 4 * radius, y);
-                y = layout.bottom;
-                children.push(layout);
+                var layout = layoutVssNode(child, level + 1, left + levelIndent, nextTop);
+                nextTop = layout.bottom;
                 right = Math.max(layout.right, right);
+                children.push(layout);
             }
+
+            y = children.length ? Math.max((children[0].y + children[children.length - 1].y) / 2, y) : y;
         }
-        bottom = Math.max(bottom, y);
+        bottom = Math.max(bottom, nextTop);
         return {
+            x,
+            y,
             left,
             right,
             top,
@@ -88,21 +117,44 @@
         };
     }
 
-    function drawLayoutedVssNode(ctx, layoutedNode) {
-        ctx.beginPath();
-        ctx.arc(layoutedNode.left, layoutedNode.top, radius, 0, 2 * Math.PI);
-        ctx.fillStyle = "#000";
-        ctx.fill();
+    function transformPosition(p, transform) {
+        return {
+            x: p.x * transform.k + transform.x,
+            y: p.y * transform.k + transform.y
+        };
+    }
 
+    function transformLength(length, transform) {
+        return length * transform.k;
+    }
+
+    function drawLayoutedVssNode(ctx, transform, level, layoutedNode, parentNamePosition, parentNameWidth) {
+        let namePosition = {
+            x: layoutedNode.x + 1.5 * radius,
+            y: layoutedNode.y + 0.5 * radius
+        };
+        nameWidth = ctx.measureText(layoutedNode.node.name).width;
+        let transformedNamePosition = transformPosition(namePosition, transform);
+        let transformedNodePosition = transformPosition(layoutedNode, transform);
         if (layoutedNode.children) {
             for (var child of layoutedNode.children) {
-                drawLayoutedVssNode(ctx, child);
+                let end = transformPosition(child, transform);
                 ctx.beginPath();
-                ctx.moveTo(layoutedNode.left, layoutedNode.top);
-                ctx.lineTo(child.left, child.top);
-                ctx.strokeStyle = "#00f";
+                ctx.moveTo(transformedNodePosition.x, transformedNodePosition.y);
+                ctx.lineTo(end.x, end.y);
+                ctx.strokeStyle = edgeColor;
                 ctx.stroke();
+
+                drawLayoutedVssNode(ctx, transform, level, child, transformedNamePosition, nameWidth);
             }
+        }
+        let transformedRadius = transformLength(radius, transform);
+        ctx.beginPath();
+        ctx.arc(transformedNodePosition.x, transformedNodePosition.y, transformedRadius, 0, 2 * Math.PI);
+        ctx.fillStyle = nodeColors[layoutedNode.node.type];
+        ctx.fill();
+        if (!(parentNamePosition && (transformedNamePosition.x - parentNamePosition.x < parentNameWidth) && Math.abs(transformedNamePosition.y - parentNamePosition.y) < 10)) {
+            ctx.fillText(layoutedNode.node.name, transformedNamePosition.x, transformedNamePosition.y);
         }
     }
 
@@ -113,6 +165,18 @@
         if (!data) {
             return;
         }
+        vssData = data;
         drawVss(context, data);
+        zoomed = false;
     }
+
+    let zoom = d3.zoom()
+        .on('zoom', (e) => {
+            console.log('zoom', e);
+            zoomTransform = e.transform;
+            zoomed = true;
+            drawVss(context, vssData);
+        });
+    canvas.call(zoom);
+
 })(this);

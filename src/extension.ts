@@ -105,9 +105,9 @@ function compileVssJsonChildrenNodeToEchartsFormat(children: any): any[] {
     for (var key in children) {
         var child = children[key];
         if (child.children) {
-            result.push({name: key, children: compileVssJsonChildrenNodeToEchartsFormat(child.children)});
+            result.push({name: key, type: child.type, children: compileVssJsonChildrenNodeToEchartsFormat(child.children)});
         } else {
-            result.push({name: key});
+            result.push({name: key, type: child.type});
         }
     }
     return result;
