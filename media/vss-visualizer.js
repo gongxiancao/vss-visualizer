@@ -35,6 +35,7 @@
     var canvasPadding = 100;
     var radius = 10;
     var indent = 100 * radius;
+    var fontSize = 100;
     var nodePaddingX = radius;
     var nodePaddingY = radius;
     var zoomed = false;
@@ -46,18 +47,6 @@
         ctx.fillStyle = "#fff";
         ctx.rect(0, 0, width, height);
         ctx.fill();
-
-        //Draw
-        // ctx.beginPath();
-
-        // ctx.arc(0, 0, 20, 0, 2 * Math.PI);
-        // ctx.fillStyle = "#f00";
-        // ctx.fill();
-
-        // ctx.beginPath();
-        // ctx.arc(200, 200, 20, 0, 2 * Math.PI);
-        // ctx.fillStyle = "#0f0";
-        // ctx.fill();
 
         var left = canvasPadding;
         var top = canvasPadding;
@@ -128,39 +117,11 @@
         return length * transform.k;
     }
 
-    function overlapBounds(bound, bounds) {
-        for (var b of bounds) {
-            if (!(
-                b.left > bound.right ||
-                b.right < bound.left ||
-                b.bottom < bound.top ||
-                b.top > bound.bottom
-            )) {
-                return true;
-            }
-        }
-        return false;
+    function shouldShowLabel(level) {
+        return true;
     }
 
-    function drawLayoutedVssNode(ctx, transform, level, layoutedNode, drawLabelRectangles) {
-        let namePosition = {
-            x: layoutedNode.x + 1.5 * radius,
-            y: layoutedNode.y + 0.5 * radius
-        };
-
-        let transformedNamePosition = transformPosition(namePosition, transform);
-        let nameWidth = ctx.measureText(layoutedNode.node.name).width;
-        let labelRectangle = {
-            left: transformedNamePosition.x,
-            top: transformedNamePosition.y,
-            right: transformedNamePosition.x + nameWidth,
-            bottom: transformedNamePosition.y + 20
-        };
-
-        let labelWouldOverlap = overlapBounds(labelRectangle, drawLabelRectangles);
-        if (!labelWouldOverlap) {
-            drawLabelRectangles.push(labelRectangle);
-        }
+    function drawLayoutedVssNode(ctx, transform, level, layoutedNode) {
 
         let transformedNodePosition = transformPosition(layoutedNode, transform);
         if (layoutedNode.children) {
@@ -172,7 +133,7 @@
                 ctx.strokeStyle = edgeColor;
                 ctx.stroke();
 
-                drawLayoutedVssNode(ctx, transform, level, child, drawLabelRectangles);
+                drawLayoutedVssNode(ctx, transform, level + 1, child);
             }
         }
         let transformedRadius = transformLength(radius, transform);
@@ -180,8 +141,18 @@
         ctx.arc(transformedNodePosition.x, transformedNodePosition.y, transformedRadius, 0, 2 * Math.PI);
         ctx.fillStyle = nodeColors[layoutedNode.node.type];
         ctx.fill();
-        if (!labelWouldOverlap) {
-            ctx.fillText(layoutedNode.node.name, labelRectangle.left, labelRectangle.top);
+
+        let showLabel = shouldShowLabel(level);
+        if (showLabel) {
+            let levelFontSize = fontSize / Math.pow(2, level * 0.3) * transform.k;
+            let namePosition = {
+                x: layoutedNode.x,
+                y: layoutedNode.y
+            };
+    
+            let transformedNamePosition = transformPosition(namePosition, transform);
+            ctx.font = `${levelFontSize}px sans-serif`;
+            ctx.fillText(layoutedNode.node.name, transformedNamePosition.x + levelFontSize, transformedNamePosition.y + levelFontSize / 3);
         }
     }
 
