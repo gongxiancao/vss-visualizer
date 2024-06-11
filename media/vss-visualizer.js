@@ -74,7 +74,7 @@
         }
 
         for (var layoutedNode of layoutedNodes) {
-            drawLayoutedVssNode(ctx, zoomTransform, 0, layoutedNode);
+            drawLayoutedVssNode(ctx, zoomTransform, 0, layoutedNode, []);
         }
     }
 
@@ -128,13 +128,40 @@
         return length * transform.k;
     }
 
-    function drawLayoutedVssNode(ctx, transform, level, layoutedNode, parentNamePosition, parentNameWidth) {
+    function overlapBounds(bound, bounds) {
+        for (var b of bounds) {
+            if (!(
+                b.left > bound.right ||
+                b.right < bound.left ||
+                b.bottom < bound.top ||
+                b.top > bound.bottom
+            )) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function drawLayoutedVssNode(ctx, transform, level, layoutedNode, drawLabelRectangles) {
         let namePosition = {
             x: layoutedNode.x + 1.5 * radius,
             y: layoutedNode.y + 0.5 * radius
         };
-        nameWidth = ctx.measureText(layoutedNode.node.name).width;
+
         let transformedNamePosition = transformPosition(namePosition, transform);
+        let nameWidth = ctx.measureText(layoutedNode.node.name).width;
+        let labelRectangle = {
+            left: transformedNamePosition.x,
+            top: transformedNamePosition.y,
+            right: transformedNamePosition.x + nameWidth,
+            bottom: transformedNamePosition.y + 20
+        };
+
+        let labelWouldOverlap = overlapBounds(labelRectangle, drawLabelRectangles);
+        if (!labelWouldOverlap) {
+            drawLabelRectangles.push(labelRectangle);
+        }
+
         let transformedNodePosition = transformPosition(layoutedNode, transform);
         if (layoutedNode.children) {
             for (var child of layoutedNode.children) {
@@ -145,7 +172,7 @@
                 ctx.strokeStyle = edgeColor;
                 ctx.stroke();
 
-                drawLayoutedVssNode(ctx, transform, level, child, transformedNamePosition, nameWidth);
+                drawLayoutedVssNode(ctx, transform, level, child, drawLabelRectangles);
             }
         }
         let transformedRadius = transformLength(radius, transform);
@@ -153,8 +180,8 @@
         ctx.arc(transformedNodePosition.x, transformedNodePosition.y, transformedRadius, 0, 2 * Math.PI);
         ctx.fillStyle = nodeColors[layoutedNode.node.type];
         ctx.fill();
-        if (!(parentNamePosition && (transformedNamePosition.x - parentNamePosition.x < parentNameWidth) && Math.abs(transformedNamePosition.y - parentNamePosition.y) < 10)) {
-            ctx.fillText(layoutedNode.node.name, transformedNamePosition.x, transformedNamePosition.y);
+        if (!labelWouldOverlap) {
+            ctx.fillText(layoutedNode.node.name, labelRectangle.left, labelRectangle.top);
         }
     }
 
@@ -172,7 +199,7 @@
 
     let zoom = d3.zoom()
         .on('zoom', (e) => {
-            console.log('zoom', e);
+            // console.log('zoom', e);
             zoomTransform = e.transform;
             zoomed = true;
             drawVss(context, vssData);
