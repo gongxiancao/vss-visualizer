@@ -55,7 +55,7 @@ export function activate(context: vscode.ExtensionContext) {
                 var message = {
                     command: 'update',
                     data: compileVssDocumentToEchartsFormat(editor.document)
-                }
+                };
 
                 currentPanel.title = 'Visualize ' + path.basename(editor.document.fileName);
                 currentPanel.webview.postMessage(message);

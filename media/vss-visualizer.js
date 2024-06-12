@@ -60,7 +60,8 @@
 
         if (!zoomed && layoutedNodes.length) {
             let {x, y, left, right, top, bottom} = layoutedNodes[0];
-            canvas.call(zoom.scaleBy, Math.min(width / (right - left), height / (bottom - top)));
+            canvas.call(zoom.translateTo, (right + left) / 2, (bottom + top) / 2);
+            canvas.call(zoom.scaleTo, Math.min(0.8 * width / (right - left), 0.8 * height / (bottom - top)));
         }
 
         for (var layoutedNode of layoutedNodes) {
@@ -69,11 +70,18 @@
     }
 
     var nodeColors = {
-        'branch': '#00f',
+        'branch.0': '#4D0FA3',
+        'branch.1': '#6113CD',
+        'branch.2': '#8338ec',
+        'branch.3': '#A56EF2',
         'attribute': '#0a0',
         'sensor': '#fa0',
-        'actuator': '#f00',
+        'actuator': '#ff006e',
     };
+
+    function getNodeColor(node, level) {
+        return nodeColors[node.type + '.' + (level % 4)] || nodeColors[node.type] || '#000';
+    }
 
     function countLeaves(node) {
         if (node.children) {
@@ -158,7 +166,7 @@
         let transformedRadius = transformLength(radius, transform);
         ctx.beginPath();
         ctx.arc(transformedNodePosition.x, transformedNodePosition.y, transformedRadius, 0, 2 * Math.PI);
-        ctx.fillStyle = nodeColors[layoutedNode.node.type];
+        ctx.fillStyle = getNodeColor(layoutedNode.node, level);
         ctx.fill();
 
         let showLabel = shouldShowLabel(level);
@@ -191,8 +199,8 @@
             return;
         }
         vssData = data;
-        drawVss(context, data);
         zoomed = false;
+        drawVss(context, data);
     }
 
     let zoom = d3.zoom()
