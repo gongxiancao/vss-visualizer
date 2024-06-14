@@ -121,8 +121,8 @@ function getWebviewContent(scriptUris: vscode.Uri[]) {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>VSS Visualizer</title>
     </head>
-    <body style="height: 100%; margin: 0">
-        <div id="canvas" style="height: 100%"></div>
+    <body style="height: 100%; margin: 0; padding: 0; width: 100%;">
+        <div id="canvas" style="height: 100%; width: 100%;"></div>
         ` + scriptUris.map(uri => `<script src="${uri}"></script>`).join('') + `
     </body>
     </html>`;

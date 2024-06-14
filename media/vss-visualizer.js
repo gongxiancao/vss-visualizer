@@ -14,22 +14,12 @@
     });
 
     const vscode = acquireVsCodeApi();
-    vscode.postMessage({
-        command: 'ready'
-    });
-
-
-    var width = Math.max(d3.select("#canvas").node().clientWidth, 350) - 20,
-    height = (window.innerWidth < 768 ? width : window.innerHeight - 20);
-    var mobileSize = (window.innerWidth < 768 ? true : false);
-
-    var centerX = width/2,
-        centerY = height/2;
 
     var canvas  = d3.select("#canvas").append("canvas")
         .attr("id", "canvas")
-        .attr("width", width)
-        .attr("height", height);
+        .style('position', 'absolute')
+        .attr("width", window.innerWidth)
+        .attr("height", window.innerHeight);
 
     var vssData = [];
     var canvasPadding = 100;
@@ -39,30 +29,33 @@
     var leafFontSize = 30;
     var nodePaddingX = radius;
     var nodePaddingY = radius;
-    var zoomed = false;
-    var zoomTransform = d3.zoomIdentity.translate(0, 0).scale(1);
+    var zoomTransform = d3.zoomIdentity;
     let edgeColor = "#999";
+    let layoutedNodes;
 
-    function drawVss(ctx, data) {
-        //Clear canvas
-        ctx.fillStyle = "#fff";
-        ctx.rect(0, 0, width, height);
-        ctx.fill();
-
-        var left = canvasPadding;
-        var top = canvasPadding;
-        var layoutedNodes = [];
+    function layoutVss(data, left, top) {
+        layoutedNodes = [];
         for (var node of data) {
             var layout = layoutVssNode(node, 0, left, top);
             layoutedNodes.push(layout);
             top = layout.bottom;
         }
+    }
 
-        if (!zoomed && layoutedNodes.length) {
-            let {x, y, left, right, top, bottom} = layoutedNodes[0];
-            canvas.call(zoom.translateTo, (right + left) / 2, (bottom + top) / 2);
-            canvas.call(zoom.scaleTo, Math.min(0.8 * width / (right - left), 0.8 * height / (bottom - top)));
-        }
+    function resetZoom(layoutedNodes) {
+        let width = canvas.node().clientWidth;
+        let height = canvas.node().clientHeight;
+        let {x, y, left, right, top, bottom} = layoutedNodes[0];
+        canvas.call(zoom.translateTo, (right + left) / 2, (bottom + top) / 2);
+        canvas.call(zoom.scaleTo, Math.min(0.8 * width / (right - left), 0.8 * height / (bottom - top)));
+    }
+
+    function drawLayoutedVss(ctx, layoutedNodes) {
+        let width = canvas.node().clientWidth;
+        let height = canvas.node().clientHeight;
+        ctx.fillStyle = "#fff";
+        ctx.rect(0, 0, width, height);
+        ctx.fill();
 
         for (var layoutedNode of layoutedNodes) {
             drawLayoutedVssNode(ctx, zoomTransform, 0, layoutedNode, []);
@@ -95,7 +88,6 @@
         }
     }
 
-    
     function layoutVssNode(node, level, left, top) {
         let right = left + 2 * radius + 2 * nodePaddingX;
         let bottom = top + 2 * radius + 2 * nodePaddingY;
@@ -192,24 +184,40 @@
     }
 
     var context = canvas.node().getContext("2d");
-    context.clearRect(0, 0, width, height);
 
+    let suspendDraw = false;
     function updateVss(data) {
         if (!data) {
             return;
         }
         vssData = data;
-        zoomed = false;
-        drawVss(context, data);
+        layoutVss(data, canvasPadding, canvasPadding);
+        suspendDraw = true;
+        resetZoom(layoutedNodes);
+        suspendDraw = false;
+        drawLayoutedVss(context, layoutedNodes);
     }
+
+    window.addEventListener('resize', event => {
+        canvas
+            .attr('width', window.innerWidth)
+            .attr('height', window.innerHeight);
+
+        if (layoutedNodes) {
+            drawLayoutedVss(context, layoutedNodes);
+        }
+    });
 
     let zoom = d3.zoom()
         .on('zoom', (e) => {
-            // console.log('zoom', e);
             zoomTransform = e.transform;
-            zoomed = true;
-            drawVss(context, vssData);
+            if (!suspendDraw) {
+                drawLayoutedVss(context, layoutedNodes);
+            }
         });
     canvas.call(zoom);
 
+    vscode.postMessage({
+        command: 'ready'
+    });
 })(this);
