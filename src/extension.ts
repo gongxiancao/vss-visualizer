@@ -39,29 +39,47 @@ export function activate(context: vscode.ExtensionContext) {
             currentPanel.onDidDispose(
                 () => {
                 currentPanel = undefined;
+                visualizingDocument = undefined;
                 },
                 null,
                 context.subscriptions
             );
 
+            let visualizingDocument: vscode.TextDocument | undefined;
+
             function updateVisualizerWithActiveEditor(editor: vscode.TextEditor | undefined) {
-                if (!editor || !currentPanel) {
+                if (!editor) {
                     return;
                 }
-                if (!isVssDocument(editor.document)) {
+                updateVisualizerWithDocument(editor.document);
+            }
+
+            function updateVisualizerWithDocument(document: vscode.TextDocument) {
+                if (!currentPanel) {
+                    return;
+                }
+
+                if (!isVssDocument(document)) {
                     return;
                 }
 
                 var message = {
                     command: 'update',
-                    data: compileVssDocumentToEchartsFormat(editor.document)
+                    data: compileVssDocumentToEchartsFormat(document)
                 };
-
-                currentPanel.title = 'Visualize ' + path.basename(editor.document.fileName);
+                visualizingDocument = document;
+                currentPanel.title = 'Visualize ' + path.basename(document.fileName);
                 currentPanel.webview.postMessage(message);
             }
 
             vscode.window.onDidChangeActiveTextEditor(updateVisualizerWithActiveEditor);
+            vscode.workspace.onDidChangeTextDocument((e: vscode.TextDocumentChangeEvent) => {
+                console.log('Document changed.');
+                if (currentPanel && e.document === visualizingDocument) {
+                    updateVisualizerWithDocument(e.document);
+                }
+            });
+        
             const editor = vscode.window.activeTextEditor;
 
             currentPanel.webview.onDidReceiveMessage(message => {

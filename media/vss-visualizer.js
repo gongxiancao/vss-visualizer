@@ -43,6 +43,9 @@
     }
 
     function resetZoom(layoutedNodes) {
+        if (!layoutedNodes.length) {
+            return;
+        }
         let width = canvas.node().clientWidth;
         let height = canvas.node().clientHeight;
         let {x, y, left, right, top, bottom} = layoutedNodes[0];
