@@ -31,10 +31,15 @@ export function activate(context: vscode.ExtensionContext) {
                 } // Webview options. More on these later.
             );
 
-            currentPanel.webview.html = getWebviewContent([
-                currentPanel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'd3.v7.js')),
-                currentPanel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'vss-visualizer.js'))
-            ]);
+            currentPanel.webview.html = getWebviewContent(
+                [
+                    currentPanel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'd3.v7.js')),
+                    currentPanel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'mark.min.js')),
+                    currentPanel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'vss-visualizer.js'))
+                ],
+                [
+                ]
+            );
 
             currentPanel.onDidDispose(
                 () => {
@@ -123,25 +128,40 @@ function compileVssJsonChildrenNodeToEchartsFormat(children: any): any[] {
     for (var key in children) {
         var child = children[key];
         if (child.children) {
-            result.push({name: key, type: child.type, children: compileVssJsonChildrenNodeToEchartsFormat(child.children)});
+            result.push({name: key, type: child.type, description: child.description, children: compileVssJsonChildrenNodeToEchartsFormat(child.children)});
         } else {
-            result.push({name: key, type: child.type});
+            result.push({name: key, type: child.type, description: child.description});
         }
     }
     return result;
 }
 
-function getWebviewContent(scriptUris: vscode.Uri[]) {
+function getWebviewContent(scriptUris: vscode.Uri[], styleSheetUris: vscode.Uri[]) {
     return `<!DOCTYPE html>
     <html lang="en" style="height: 100%">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>VSS Visualizer</title>
+        ` + styleSheetUris.map(uri => `<link href="${uri}" rel="stylesheet">`).join('\n') + `
     </head>
     <body style="height: 100%; margin: 0; padding: 0; width: 100%;">
-        <div id="canvas" style="height: 100%; width: 100%;"></div>
-        ` + scriptUris.map(uri => `<script src="${uri}"></script>`).join('') + `
+        <div>
+            <div style="position: fixed;z-index: 1;">
+                <button id="tree-tab" type="button" data-target="#canvas">Tree</button>
+                <button id="table-tab" type="button" data-target="#table">Table</button>
+            </div>
+            <div>
+                <div id="canvas"></div>
+                <div id="table">
+                    <div style="text-align: right;">
+                        <input type="text" id="search" name="search">
+                        <input type="checkbox"> filter
+                    </div>
+                </div>
+            </div>
+        </div>
+        ` + scriptUris.map(uri => `<script src="${uri}"></script>`).join('\n') + `
     </body>
     </html>`;
 }

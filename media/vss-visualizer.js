@@ -15,11 +15,89 @@
 
     const vscode = acquireVsCodeApi();
 
-    var canvas  = d3.select("#canvas").append("canvas")
-        .attr("id", "canvas")
+    var canvasTab = d3.select('#canvas');
+    var tableTab = d3.select('#table');
+
+    canvasTab.style('visibility', 'visible');
+    tableTab.style('visibility', 'hidden');
+
+    d3.select('button#tree-tab').on('click', () => {
+        console.log('button#tree-tab');
+        canvasTab.style('visibility', 'visible');
+        tableTab.style('visibility', 'hidden');
+    });
+
+    d3.select('button#table-tab').on('click', () => {
+        console.log('button#table-tab');
+        canvasTab.style('visibility', 'hidden');
+        tableTab.style('visibility', 'visible');
+    });
+
+    let searchInpt = d3.select('input#search');
+    console.log('yyyyyyyyy', searchInpt);
+
+    var canvas  = canvasTab.append('canvas')
+        .style('position', 'fixed')
+        // .style('display', 'none')
+        .attr('width', window.innerWidth)
+        .attr('height', window.innerHeight);
+
+    var table  = tableTab.append('table')
         .style('position', 'absolute')
-        .attr("width", window.innerWidth)
-        .attr("height", window.innerHeight);
+        // .style('display', 'none')
+        .attr('id', 'vss-table')
+        .attr('width', window.innerWidth)
+        .attr('height', window.innerHeight)
+
+    var markInstance = new Mark("#vss-table");
+    var searchInput = d3.select('input#search');
+    function mark() {
+        let keyword = searchInput.node().value;
+        console.log('yyyyy', keyword);
+        markInstance.unmark({
+            done: () => {
+                markInstance.mark(keyword);
+            }
+        });
+    }
+
+    searchInput.on('input', (e) => {
+        console.log('xxxxxx', e);
+        console.log('xxxxxx', e.target);
+        console.log('xxxxxx', e.target.value);
+        mark();
+    });
+
+    table.append('thead')
+        .append('tr')
+        .selectAll('th')
+        .data(['name', 'type', 'description'])
+        .enter()
+        .append('th')
+        .text(d=>d);
+    var tbody = table.append('tbody');
+
+    function layoutVssToList(prefix, data, list) {
+        for (let node of data) {
+            list.push([prefix + node.name, node.type, node.description]);
+            if (node.children) {
+                layoutVssToList(prefix + node.name + '.', node.children, list);
+            }
+        }
+        return list;
+    }
+
+    function drawVssTable(data) {
+        tbody.selectAll('tr')
+        .data(data)
+        .enter()
+        .append('tr')
+        .selectAll('td')
+        .data(d => d)
+        .enter()
+        .append('td')
+        .text(d => d);
+    }
 
     var vssData = [];
     var canvasPadding = 100;
@@ -30,7 +108,7 @@
     var nodePaddingX = radius;
     var nodePaddingY = radius;
     var zoomTransform = d3.zoomIdentity;
-    let edgeColor = "#999";
+    let edgeColor = '#999';
     let layoutedNodes;
 
     function layoutVss(data, left, top) {
@@ -56,7 +134,7 @@
     function drawLayoutedVss(ctx, layoutedNodes) {
         let width = canvas.node().clientWidth;
         let height = canvas.node().clientHeight;
-        ctx.fillStyle = "#fff";
+        ctx.fillStyle = '#fff';
         ctx.rect(0, 0, width, height);
         ctx.fill();
 
@@ -186,19 +264,21 @@
         }
     }
 
-    var context = canvas.node().getContext("2d");
+    var context = canvas.node().getContext('2d');
 
     let suspendDraw = false;
     function updateVss(data) {
         if (!data) {
             return;
         }
-        vssData = data;
         layoutVss(data, canvasPadding, canvasPadding);
         suspendDraw = true;
         resetZoom(layoutedNodes);
         suspendDraw = false;
         drawLayoutedVss(context, layoutedNodes);
+
+        let list = layoutVssToList('', data, []);
+        drawVssTable(list);
     }
 
     window.addEventListener('resize', event => {
