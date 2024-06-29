@@ -34,7 +34,6 @@
     });
 
     let searchInpt = d3.select('input#search');
-    console.log('yyyyyyyyy', searchInpt);
 
     var canvas  = canvasTab.append('canvas')
         .style('position', 'fixed')
@@ -42,12 +41,10 @@
         .attr('width', window.innerWidth)
         .attr('height', window.innerHeight);
 
-    var table  = tableTab.append('table')
+    var table  = tableTab.append('div')
         .style('position', 'absolute')
         // .style('display', 'none')
-        .attr('id', 'vss-table')
-        .attr('width', window.innerWidth)
-        .attr('height', window.innerHeight)
+        .attr('id', 'vss-table');
 
     var markInstance = new Mark("#vss-table");
     var searchInput = d3.select('input#search');
@@ -62,20 +59,20 @@
     }
 
     searchInput.on('input', (e) => {
-        console.log('xxxxxx', e);
-        console.log('xxxxxx', e.target);
-        console.log('xxxxxx', e.target.value);
         mark();
     });
 
-    table.append('thead')
-        .append('tr')
-        .selectAll('th')
+    table.append('div')
+        .classed('vss-table-area', true)
+        .append('div')
+        .selectAll('span')
         .data(['name', 'type', 'description'])
         .enter()
-        .append('th')
+        .append('span')
         .text(d=>d);
-    var tbody = table.append('tbody');
+
+    var tbody = table.append('div')
+        .classed('vss-table-area', true);
 
     function layoutVssToList(prefix, data, list) {
         for (let node of data) {
@@ -88,18 +85,18 @@
     }
 
     function drawVssTable(data) {
-        tbody.selectAll('tr')
+        tbody.selectAll('div')
         .data(data)
         .join(
             (enter) => {
                 enter
-                .append('tr')
-                .selectAll('td')
+                .append('div')
+                .selectAll('span')
                 .data(d => d, d => d[0])
                 .join(
                     (enter) => {
                         enter
-                        .append('td')
+                        .append('span')
                         .text(d => d);
                     },
                     (update) => {
@@ -112,22 +109,23 @@
                 );
             },
             (update) => {
-                update.selectAll('td')
-                    .data(d => d, d => d[0])
-                    .join(
-                        (enter) => {
-                            enter
-                            .append('td')
-                            .text(d => d);
-                        },
-                        (update) => {
-                            update
-                            .text(d => d);
-                        },
-                        (exit) => {
-                            exit.remove();
-                        }
-                    );
+                update
+                .selectAll('span')
+                .data(d => d, d => d[0])
+                .join(
+                    (enter) => {
+                        enter
+                        .append('span')
+                        .text(d => d);
+                    },
+                    (update) => {
+                        update
+                        .text(d => d);
+                    },
+                    (exit) => {
+                        exit.remove();
+                    }
+                );
             },
             (exit) => {
                 exit.remove();

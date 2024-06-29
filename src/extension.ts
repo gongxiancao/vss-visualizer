@@ -144,6 +144,39 @@ function getWebviewContent(scriptUris: vscode.Uri[], styleSheetUris: vscode.Uri[
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>VSS Visualizer</title>
         ` + styleSheetUris.map(uri => `<link href="${uri}" rel="stylesheet">`).join('\n') + `
+        <style>
+        #table {
+            min-width: 500px;
+        }
+        #vss-table {
+            width: 100%;
+        }
+        .vss-table-area > div {
+            overflow: hidden;
+            display: flex;
+        }
+
+        .vss-table-area > div > span {
+            padding: 0.3em;
+            width: 110px;
+            min-width: 0;
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        .vss-table-area > div > span:nth-child(1) {
+            flex: auto;
+        }
+
+        .vss-table-area > div > span:nth-child(2) {
+            flex: initial;
+        }
+
+        .vss-table-area > div > span:nth-child(3) {
+            flex: auto;
+        }
+
+        </style>
     </head>
     <body style="height: 100%; margin: 0; padding: 0; width: 100%;">
         <div>
