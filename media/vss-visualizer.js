@@ -90,13 +90,50 @@
     function drawVssTable(data) {
         tbody.selectAll('tr')
         .data(data)
-        .enter()
-        .append('tr')
-        .selectAll('td')
-        .data(d => d)
-        .enter()
-        .append('td')
-        .text(d => d);
+        .join(
+            (enter) => {
+                enter
+                .append('tr')
+                .selectAll('td')
+                .data(d => d, d => d[0])
+                .join(
+                    (enter) => {
+                        enter
+                        .append('td')
+                        .text(d => d);
+                    },
+                    (update) => {
+                        update
+                        .text(d => d);
+                    },
+                    (exit) => {
+                        exit.remove();
+                    }
+                );
+            },
+            (update) => {
+                update.selectAll('td')
+                    .data(d => d, d => d[0])
+                    .join(
+                        (enter) => {
+                            enter
+                            .append('td')
+                            .text(d => d);
+                        },
+                        (update) => {
+                            update
+                            .text(d => d);
+                        },
+                        (exit) => {
+                            exit.remove();
+                        }
+                    );
+            },
+            (exit) => {
+                exit.remove();
+            }
+        );
+
     }
 
     var vssData = [];

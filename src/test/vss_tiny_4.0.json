@@ -1,0 +1,24 @@
+{
+	"Vehicle": {
+			"children": {
+					"Speed": {
+							"datatype": "float",
+							"description": "Vehicle speed.",
+							"type": "sensor",
+							"unit": "km/h",
+							"uuid": "efe50798638d55fab18ab7d43cc490e9"
+					},
+					"Width": {
+							"datatype": "uint16",
+							"default": 0,
+							"description": "Overall vehicle width.",
+							"type": "attribute",
+							"unit": "mm",
+							"uuid": "b4aabe144e3259adb1459a2e25fec9bd"
+					}
+			},
+			"description": "High-level vehicle data.",
+			"type": "branch",
+			"uuid": "ccc825f94139544dbb5f4bfd033bece6"
+	}
+}
